@@ -1,49 +1,85 @@
+import json
+import os
+
+
+class MemoryStore:
+    def __init__(self, file_path="finder_memory.json"):
+        self.file_path = file_path
+        self.memory = self.load()
+
+    def load(self):
+        if os.path.exists(self.file_path):
+            try:
+                with open(self.file_path, "r") as f:
+                    return json.load(f)
+            except:
+                return {}
+        return {}
+
+    def save(self):
+        with open(self.file_path, "w") as f:
+            json.dump(self.memory, f, indent=2)
+
+    def get(self, key):
+        return self.memory.get(key)
+
+    def set(self, key, value):
+        self.memory[key] = value
+        self.save()
+
+
 class Finder:
 
-    def find(self, target):
+    def __init__(self):
+        self.memory = MemoryStore()
 
-        if self.has_id(target):
+    def find(self, command):
+
+        # 1. MEMORY CHECK
+        cached = self.memory.get(command)
+
+        if cached:
             return {
-                "success": True,
-                "data": {"method": "ID", "confidence": 0.95, "target": target},
-                "error": None
+                "found": True,
+                "method": "memory",
+                "confidence": 1.0,
+                "data": cached
             }
 
-        if self.has_text(target):
+        # 2. SIMULATED SEARCH LOGIC (ide jön majd AutoInput / UI)
+        result = self._search_ui(command)
+
+        # 3. SAVE TO MEMORY
+        if result["found"]:
+            self.memory.set(command, result)
+
+        return result
+
+    def _search_ui(self, command):
+
+        # 👉 IDE jön később a valódi Android UI keresés
+
+        # fallback logika (egyszerűen most)
+        if "search" in command.lower():
             return {
-                "success": True,
-                "data": {"method": "TEXT", "confidence": 0.7, "target": target},
-                "error": None
+                "found": True,
+                "method": "text_match",
+                "confidence": 0.6,
+                "target": "search_button"
             }
 
-        if self.has_accessibility(target):
+        elif "home" in command.lower():
             return {
-                "success": True,
-                "data": {"method": "ACCESSIBILITY", "confidence": 0.6, "target": target},
-                "error": None
+                "found": True,
+                "method": "text_match",
+                "confidence": 0.7,
+                "target": "home_button"
             }
 
-        if self.can_see_screen(target):
-            return {
-                "success": True,
-                "data": {"method": "OCR_SCREEN", "confidence": 0.4, "target": target},
-                "error": None
-            }
-
+        # LAST RESORT
         return {
-            "success": True,
-            "data": {"method": "COORDINATE", "confidence": 0.1, "target": target},
-            "error": None
+            "found": False,
+            "method": "none",
+            "confidence": 0.0,
+            "target": None
         }
-
-    def has_id(self, target):
-        return True
-
-    def has_text(self, target):
-        return False
-
-    def has_accessibility(self, target):
-        return False
-
-    def can_see_screen(self, target):
-        return False
