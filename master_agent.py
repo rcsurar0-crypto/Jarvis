@@ -26,12 +26,15 @@ class MasterAgent:
                     "route": route,
                     "finder": finder_result,
                     "executor": executor_result
-                }
+                },
+                "error": None,
+                "method": "v2_pipeline"
             }
 
         except Exception as e:
             return {
                 "success": False,
                 "data": None,
-                "error": str(e)
+                "error": str(e),
+                "method": "v2_pipeline"
             }
