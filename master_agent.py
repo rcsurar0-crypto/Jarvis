@@ -9,14 +9,14 @@ class MasterAgent:
 
         try:
             router = Router()
-            route = router.route(command)
+            route = router.route(command) or {}
 
             finder = Finder()
             finder_result = finder.find(command)
 
             executor = Executor()
 
-            action = route["data"] if route.get("success") else "UNKNOWN"
+            action = route.get("data", "UNKNOWN")
 
             executor_result = executor.execute(action)
 
