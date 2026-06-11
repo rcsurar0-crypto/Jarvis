@@ -7,34 +7,26 @@ class MasterAgent:
 
     def run(self, command):
 
-        try:
-            router = Router()
-            route = router.route(command)
+        router = Router()
+        route = router.route(command)
 
-            finder = Finder()
-            finder_result = finder.find(command)
+        finder = Finder()
+        finder_result = finder.find(command)
 
-            executor = Executor()
+        executor = Executor()
 
-            action = route.get("data") if isinstance(route, dict) else route
+        if isinstance(route, dict):
+            action = route.get("data", "UNKNOWN")
+        else:
+            action = route
 
-            executor_result = executor.execute(action)
+        executor_result = executor.execute(action)
 
-            return {
-                "success": True,
-                "data": {
-                    "route": route,
-                    "finder": finder_result,
-                    "executor": executor_result
-                },
-                "error": None,
-                "method": "v2_pipeline"
+        return {
+            "success": True,
+            "data": {
+                "route": route,
+                "finder": finder_result,
+                "executor": executor_result
             }
-
-        except Exception as e:
-            return {
-                "success": False,
-                "data": None,
-                "error": str(e),
-                "method": "v2_pipeline"
-            }
+        }
