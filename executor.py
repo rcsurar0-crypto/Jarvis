@@ -2,13 +2,15 @@ class Executor:
     def execute(self, action):
         if action == "FINDER":
             return {
-                "executed": True,
-                "action": action,
-                "result": "Simulated find executed"
+                "success": True,
+                "data": "Simulated find executed",
+                "method": "simulated",
+                "error": None
             }
 
         return {
-            "executed": False,
-            "action": action,
-            "result": "Unknown action"
+            "success": False,
+            "data": None,
+            "method": "unknown_action",
+            "error": "Action not supported"
         }
