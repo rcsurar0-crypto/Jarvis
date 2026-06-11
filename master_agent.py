@@ -1,6 +1,7 @@
 from router import Router
 from finder import Finder
 from executor import Executor
+from verify import Verify
 
 
 class MasterAgent:
@@ -9,26 +10,28 @@ class MasterAgent:
 
         try:
             router = Router()
-            route = router.route(command) or {}
+            route = router.route(command)
 
             finder = Finder()
             finder_result = finder.find(command)
 
             executor = Executor()
-
-            action = route.get("data", "UNKNOWN")
-
+            action = route.get("data") if isinstance(route, dict) else route
             executor_result = executor.execute(action)
+
+            verify = Verify()
+            verify_result = verify.check(executor_result)
 
             return {
                 "success": True,
                 "data": {
                     "route": route,
                     "finder": finder_result,
-                    "executor": executor_result
+                    "executor": executor_result,
+                    "verify": verify_result
                 },
-                "error": None,
-                "method": "v2_stable"
+                "method": "v2_pipeline",
+                "error": None
             }
 
         except Exception as e:
@@ -36,5 +39,5 @@ class MasterAgent:
                 "success": False,
                 "data": None,
                 "error": str(e),
-                "method": "v2_stable"
+                "method": "v2_pipeline"
             }
