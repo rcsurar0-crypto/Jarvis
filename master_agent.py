@@ -6,38 +6,34 @@ from verify import Verify
 
 class MasterAgent:
 
+    def __init__(self):
+        self.router = Router()
+        self.finder = Finder()
+        self.executor = Executor()
+        self.verify = Verify()
+
     def run(self, command):
 
-        router = Router()
-        finder = Finder()
-        executor = Executor()
-        verify = Verify()
-
         try:
-            # 1. ROUTE
-            route = router.route(command)
+            route = self.router.route(command)
+            finder_result = self.finder.find(command)
 
-            # 2. FIND
-            finder_result = finder.find(command)
-
-            # 3. ACTION PREP
             action = route.get("data") if isinstance(route, dict) else route
 
-            # 4. EXECUTE
-            executor_result = executor.execute(action)
+            executor_result = self.executor.execute(action)
+            verify_result = self.verify.check(executor_result)
 
-            # 5. VERIFY
-            verify_result = verify.check(executor_result)
+            success = executor_result.get("success") and verify_result.get("success")
 
             return {
-                "success": True,
+                "success": success,
                 "data": {
                     "route": route,
                     "finder": finder_result,
                     "executor": executor_result,
                     "verify": verify_result
                 },
-                "method": "v2_pipeline_stable",
+                "method": "jarvis_full_loop_v1",
                 "error": None
             }
 
@@ -45,11 +41,7 @@ class MasterAgent:
 
             return {
                 "success": False,
-                "data": {
-                    "route": route if "route" in locals() else None,
-                    "finder": finder_result if "finder_result" in locals() else None,
-                    "executor": executor_result if "executor_result" in locals() else None
-                },
+                "data": None,
                 "error": str(e),
-                "method": "v2_pipeline_stable"
+                "method": "jarvis_full_loop_v1"
             }
