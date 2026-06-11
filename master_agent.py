@@ -16,7 +16,7 @@ class MasterAgent:
 
             executor = Executor()
 
-            action = route.get("data") if isinstance(route, dict) else route
+            action = route["data"] if route.get("success") else "UNKNOWN"
 
             executor_result = executor.execute(action)
 
@@ -28,7 +28,7 @@ class MasterAgent:
                     "executor": executor_result
                 },
                 "error": None,
-                "method": "v2_pipeline"
+                "method": "v2_stable"
             }
 
         except Exception as e:
@@ -36,5 +36,5 @@ class MasterAgent:
                 "success": False,
                 "data": None,
                 "error": str(e),
-                "method": "v2_pipeline"
+                "method": "v2_stable"
             }
