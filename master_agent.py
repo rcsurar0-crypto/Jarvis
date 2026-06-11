@@ -2,6 +2,7 @@ from router import Router
 from finder import Finder
 from executor import Executor
 
+
 class MasterAgent:
 
     def run(self, command):
@@ -13,7 +14,10 @@ class MasterAgent:
         finder_result = finder.find(command)
 
         executor = Executor()
-        executor_result = executor.execute(route["data"])
+
+        action = route["data"] if isinstance(route, dict) else route
+
+        executor_result = executor.execute(action)
 
         return {
             "success": True,
@@ -21,7 +25,5 @@ class MasterAgent:
                 "route": route,
                 "finder": finder_result,
                 "executor": executor_result
-            },
-            "method": "pipeline",
-            "error": None
+            }
         }
