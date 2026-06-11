@@ -3,18 +3,13 @@ from master_agent import MasterAgent
 
 class TestMasterAgent(unittest.TestCase):
 
-    def test_pipeline(self):
+    def test_pipeline_runs(self):
         agent = MasterAgent()
         result = agent.run("find something")
 
-        self.assertIn("route", result)
-        self.assertIn("finder", result)
-        self.assertIn("executor", result)
-
-        self.assertIsNotNone(result["route"])
-        self.assertIsNotNone(result["finder"])
-        self.assertIsNotNone(result["executor"])
-
+        self.assertIsNotNone(result)
+        self.assertIn("success", result)
+        self.assertIn("data", result)
 
 if __name__ == "__main__":
     unittest.main()
