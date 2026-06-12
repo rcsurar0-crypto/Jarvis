@@ -15,47 +15,56 @@ class MasterAgent:
     def run(self, command):
 
         try:
-            # 1. ROUTER (alap terv)
+            # 1. ROUTER
             route = self.router.route(command)
 
-            # 2. FINDER V2 (UI / okos döntés)
+            # 2. FINDER V2 (AI decision)
             finder_result = self.finder.find(command)
 
-            # 3. ACTION DÖNTÉS (FONTOS FIX)
+            # 3. ACTION kiválasztás
             if finder_result.get("found"):
                 action = finder_result.get("target")
             else:
                 action = route.get("data") if isinstance(route, dict) else route
 
-            # 4. EXECUTOR (végrehajtás)
-            executor_result = self.executor.execute(action)
+            # 4. EXECUTOR (alap végrehajtás)
+            control_result = self.executor.execute(action)
 
-            # 5. VERIFY (ellenőrzés)
-            verify_result = self.verify.check(executor_result)
+            # 5. VISION FALLBACK CLICK LOGIKA
+            if isinstance(finder_result, dict) and finder_result.get("method") == "vision_fallback":
 
-            # 6. SUCCESS LOGIKA
+                target = finder_result.get("target")
+
+                if target:
+
+                    control_result = self.executor.execute(target)
+
+            # 6. VERIFY
+            verify_result = self.verify.check(control_result)
+
+            # 7. SUCCESS LOGIKA
             success = (
-                executor_result.get("success", False)
+                control_result.get("success", False)
                 and verify_result.get("success", False)
             )
 
-            # 7. MEMORY UPDATE (tanulás)
+            # 8. MEMORY UPDATE
             if success:
                 try:
                     self.finder.memory.set(command, finder_result)
                 except:
                     pass
 
-            # 8. RETURN FULL PIPELINE
+            # 9. RETURN FULL PIPELINE
             return {
                 "success": success,
                 "data": {
                     "route": route,
                     "finder": finder_result,
-                    "executor": executor_result,
+                    "executor": control_result,
                     "verify": verify_result
                 },
-                "method": "jarvis_full_loop_v3",
+                "method": "jarvis_full_loop_v4",
                 "error": None
             }
 
@@ -65,5 +74,5 @@ class MasterAgent:
                 "success": False,
                 "data": None,
                 "error": str(e),
-                "method": "jarvis_full_loop_v3"
+                "method": "jarvis_full_loop_v4"
             }
