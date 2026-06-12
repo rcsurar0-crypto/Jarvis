@@ -1,13 +1,30 @@
 import socket
 
-HOST = "192.168.1.45"  # <-- IDE A SAJÁT IP-D
+# 🔥 TELEFON IP CÍME (ezt már tudod)
+HOST = "192.168.0.205"
+
+# 🔥 SOCKET PORT (Android oldalon is ez van)
 PORT = 5050
 
-s = socket.socket()
-s.connect((HOST, PORT))
+def send_click(x, y):
 
-s.send(b"click:500,800")
+    try:
+        # kapcsolat létrehozás
+        s = socket.socket()
+        s.connect((HOST, PORT))
 
-s.close()
+        # parancs küldése Androidnak
+        message = f"click:{x},{y}"
+        s.send(message.encode())
 
-print("sent")
+        # lezárás
+        s.close()
+
+        print("✅ Click sent:", message)
+
+    except Exception as e:
+        print("❌ Error:", e)
+
+
+# 🔥 TESZT KATTINTÁS
+send_click(500, 800)
