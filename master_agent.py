@@ -1,78 +1,143 @@
-from router import Router
-from finder_v2 import FinderV2
-from executor import Executor
-from verify import Verify
-
-
-class MasterAgent:
+class Memory:
 
     def __init__(self):
-        self.router = Router()
-        self.finder = FinderV2()
-        self.executor = Executor()
-        self.verify = Verify()
+        self.store = []
 
-    def run(self, command):
+    def save(self, data):
+        self.store.append(data)
+
+
+class Verify:
+
+    def check(self, executor_result):
+
+        if executor_result.get("success"):
+            return {
+                "state": "SUCCESS",
+                "confidence": 1.0,
+                "trace": executor_result.get("trace", [])
+            }
+
+        error = executor_result.get("error", "unknown error")
+
+        return {
+            "state": "FAIL",
+            "step": executor_result.get("step", "UNKNOWN"),
+            "error": error,
+            "cause": self.analyze(error),
+            "confidence": 0.6,
+            "fix_suggestion": self.suggest_fix(error),
+            "trace": executor_result.get("trace", [])
+        }
+
+    def analyze(self, error):
+
+        if "not found" in error:
+            return "UI element missing"
+
+        if "timeout" in error:
+            return "execution timeout"
+
+        if "permission" in error:
+            return "missing permission"
+
+        return "unknown cause"
+
+    def suggest_fix(self, error):
+
+        if "not found" in error:
+            return "try accessibility fallback or OCR"
+
+        if "timeout" in error:
+            return "increase delay or retry execution"
+
+        if "permission" in error:
+            return "enable accessibility service"
+
+        return "manual debugging needed"
+
+
+class Executor:
+
+    def execute(self, action):
 
         try:
-            # 1. ROUTER
-            route = self.router.route(command)
+            # itt később Android socket / click / swipe jön
+            print(f"[EXECUTOR] action: {action}")
 
-            # 2. FINDER V2 (AI decision)
-            finder_result = self.finder.find(command)
-
-            # 3. ACTION kiválasztás
-            if finder_result.get("found"):
-                action = finder_result.get("target")
-            else:
-                action = route.get("data") if isinstance(route, dict) else route
-
-            # 4. EXECUTOR (alap végrehajtás)
-            control_result = self.executor.execute(action)
-
-            # 5. VISION FALLBACK CLICK LOGIKA
-            if isinstance(finder_result, dict) and finder_result.get("method") == "vision_fallback":
-
-                target = finder_result.get("target")
-
-                if target:
-
-                    control_result = self.executor.execute(target)
-
-            # 6. VERIFY
-            verify_result = self.verify.check(control_result)
-
-            # 7. SUCCESS LOGIKA
-            success = (
-                control_result.get("success", False)
-                and verify_result.get("success", False)
-            )
-
-            # 8. MEMORY UPDATE
-            if success:
-                try:
-                    self.finder.memory.set(command, finder_result)
-                except:
-                    pass
-
-            # 9. RETURN FULL PIPELINE
             return {
-                "success": success,
-                "data": {
-                    "route": route,
-                    "finder": finder_result,
-                    "executor": control_result,
-                    "verify": verify_result
-                },
-                "method": "jarvis_full_loop_v4",
-                "error": None
+                "success": True,
+                "step": "EXECUTOR",
+                "result": "done",
+                "trace": ["executor"]
             }
 
         except Exception as e:
 
             return {
                 "success": False,
-                "data": None,
+                "step": "EXECUTOR",
                 "error": str(e),
-                "method": "jarvis_full_loop_v4"
+                "trace": ["executor"]
             }
+
+
+class Router:
+
+    def route(self, command):
+
+        return {
+            "action": command,
+            "type": "default"
+        }
+
+
+class MasterAgent:
+
+    def __init__(self):
+
+        self.router = Router()
+        self.executor = Executor()
+        self.verify = Verify()
+        self.memory = Memory()
+
+    def run(self, command):
+
+        # 🧭 1. ROUTE
+        route = self.router.route(command)
+        action = route["action"]
+
+        # ⚙️ 2. EXECUTE
+        executor_result = self.executor.execute(action)
+
+        # 🧪 3. VERIFY
+        verify_result = self.verify.check(executor_result)
+
+        # 🧠 4. MEMORY SAVE
+        self.memory.save({
+            "command": command,
+            "route": route,
+            "executor": executor_result,
+            "verify": verify_result
+        })
+
+        # 🔥 5. FINAL RESULT
+        return {
+            "success": verify_result.get("state") == "SUCCESS",
+            "route": route,
+            "executor": executor_result,
+            "verify": verify_result
+        }
+
+
+# -------------------------
+# TEST RUN
+# -------------------------
+if __name__ == "__main__":
+
+    agent = MasterAgent()
+
+    result = agent.run("click button")
+
+    print("\nFINAL RESULT:")
+    print(result)
