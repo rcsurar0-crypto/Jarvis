@@ -1,55 +1,64 @@
-import java.io.BufferedReader
-import java.io.InputStreamReader
+import android.app.Service
+import android.content.Intent
+import android.os.IBinder
 import java.net.ServerSocket
 import kotlin.concurrent.thread
 
-class SocketBridgeService : Thread() {
+class SocketBridgeService : Service() {
 
-    var running = true
+    private var running = true
 
-    override fun run() {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
 
-        val server = ServerSocket(5050)
+        thread {
+            val server = ServerSocket(5050)
 
-        while (running) {
+            while (running) {
 
-            val client = server.accept()
+                val client = server.accept()
+                val input = client.getInputStream().bufferedReader().readLine()
 
-            val reader = BufferedReader(InputStreamReader(client.getInputStream()))
+                if (input != null) {
+                    handleCommand(input)
+                }
 
-            val line = reader.readLine()
-
-            if (line != null) {
-                handleCommand(line)
+                client.close()
             }
-
-            client.close()
         }
+
+        return START_STICKY
     }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
 
     private fun handleCommand(command: String) {
 
-        // Példa: "click:500,800"
-        if (command.startsWith("click")) {
+        when {
 
-            val parts = command.split(":")[1].split(",")
+            command.startsWith("click") -> {
 
-            val x = parts[0].toInt()
-            val y = parts[1].toInt()
+                val parts = command.removePrefix("click:")
+                    .split(",")
 
-            AccessibilityController.click(x, y)
-        }
+                val x = parts[0].toInt()
+                val y = parts[1].toInt()
 
-        if (command.startsWith("swipe")) {
+                AccessibilityController.click(x, y)
+            }
 
-            val parts = command.split(":")[1].split(",")
+            command.startsWith("swipe") -> {
 
-            AccessibilityController.swipe(
-                parts[0].toInt(),
-                parts[1].toInt(),
-                parts[2].toInt(),
-                parts[3].toInt()
-            )
+                val p = command.removePrefix("swipe:")
+                    .split(",")
+
+                AccessibilityController.swipe(
+                    p[0].toInt(),
+                    p[1].toInt(),
+                    p[2].toInt(),
+                    p[3].toInt()
+                )
+            }
         }
     }
 }
