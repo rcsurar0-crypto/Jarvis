@@ -15,34 +15,38 @@ class MasterAgent:
     def run(self, command):
 
         try:
-            # 1. ROUTE (mit kell csinálni)
+            # 1. ROUTER (alap terv)
             route = self.router.route(command)
 
-            # 2. FINDER V2 (okos döntés)
+            # 2. FINDER V2 (UI / okos döntés)
             finder_result = self.finder.find(command)
 
-            # 3. ACTION kiválasztás
-            action = route.get("data") if isinstance(route, dict) else route
+            # 3. ACTION DÖNTÉS (FONTOS FIX)
+            if finder_result.get("found"):
+                action = finder_result.get("target")
+            else:
+                action = route.get("data") if isinstance(route, dict) else route
 
-            # 4. EXECUTE (végrehajtás)
+            # 4. EXECUTOR (végrehajtás)
             executor_result = self.executor.execute(action)
 
             # 5. VERIFY (ellenőrzés)
             verify_result = self.verify.check(executor_result)
 
-            # 6. FINAL SUCCESS LOGIKA
+            # 6. SUCCESS LOGIKA
             success = (
-                executor_result.get("success") and
-                verify_result.get("success")
+                executor_result.get("success", False)
+                and verify_result.get("success", False)
             )
 
-            # 7. MEMORY UPDATE (ha van success)
+            # 7. MEMORY UPDATE (tanulás)
             if success:
                 try:
                     self.finder.memory.set(command, finder_result)
                 except:
                     pass
 
+            # 8. RETURN FULL PIPELINE
             return {
                 "success": success,
                 "data": {
@@ -51,7 +55,7 @@ class MasterAgent:
                     "executor": executor_result,
                     "verify": verify_result
                 },
-                "method": "jarvis_full_loop_v2",
+                "method": "jarvis_full_loop_v3",
                 "error": None
             }
 
@@ -61,5 +65,5 @@ class MasterAgent:
                 "success": False,
                 "data": None,
                 "error": str(e),
-                "method": "jarvis_full_loop_v2"
-                    }
+                "method": "jarvis_full_loop_v3"
+            }
