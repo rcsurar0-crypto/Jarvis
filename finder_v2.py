@@ -1,5 +1,6 @@
 import json
 import os
+from vision import Vision
 
 
 class MemoryStore:
@@ -33,6 +34,7 @@ class FinderV2:
 
     def __init__(self):
         self.memory = MemoryStore()
+        self.vision = Vision()   # 👁 VISION HOZZÁKÖTÉS
 
     def find(self, command):
 
@@ -47,13 +49,29 @@ class FinderV2:
                 "data": cached
             }
 
-        # 2. DECISION + SCORING
+        # 2. DECISION TREE
         candidates = self._generate_candidates(command)
 
         best = self._select_best(candidates)
 
-        # 3. SAVE MEMORY
-        if best["found"]:
+        # 3. VISION FALLBACK (ha gyenge a találat)
+        if not best.get("found") or best.get("confidence", 0) < 0.7:
+
+            vision_result = self.vision.analyze_screen(command)
+
+            if vision_result.get("success"):
+
+                target = vision_result.get("target")
+
+                return {
+                    "found": True,
+                    "method": "vision_fallback",
+                    "confidence": target.get("confidence", 0.8),
+                    "target": target
+                }
+
+        # 4. SAVE MEMORY
+        if best.get("found"):
             self.memory.set(command, best)
 
         return best
@@ -65,8 +83,9 @@ class FinderV2:
     def _generate_candidates(self, command):
 
         candidates = []
+        text = command.lower()
 
-        if "id" in command.lower():
+        if "id" in text:
             candidates.append({
                 "method": "id",
                 "confidence": 0.95,
@@ -74,7 +93,7 @@ class FinderV2:
                 "target": "ui_by_id"
             })
 
-        if "text" in command.lower():
+        if "text" in text:
             candidates.append({
                 "method": "text",
                 "confidence": 0.60,
@@ -82,7 +101,7 @@ class FinderV2:
                 "target": "ui_by_text"
             })
 
-        if "screen" in command.lower():
+        if "screen" in text:
             candidates.append({
                 "method": "screenshot",
                 "confidence": 0.50,
@@ -103,4 +122,10 @@ class FinderV2:
             }
 
         best = max(candidates, key=lambda x: x["confidence"])
-        return best
+
+        return {
+            "found": True,
+            "method": best["method"],
+            "confidence": best["confidence"],
+            "target": best["target"]
+            }
