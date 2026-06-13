@@ -43,11 +43,11 @@ class FinderV3:
         self.vision = Vision()
 
     # =========================
-    # MAIN ENTRY
+    # MAIN FIND FUNCTION
     # =========================
     def find(self, command):
 
-        # 1. MEMORY HIT
+        # 1. MEMORY CHECK
         cached = self.memory.get(command)
         if cached:
             return self._format_result(
@@ -56,43 +56,42 @@ class FinderV3:
                 data=cached
             )
 
-        # 2. ACCESSIBILITY SCAN (REAL UI TREE)
-        acc_result = self._accessibility_scan(command)
-        if acc_result["confidence"] >= 0.85:
-            self.memory.set(command, acc_result)
-            return acc_result
+        # 2. ACCESSIBILITY SCAN
+        acc = self._accessibility_scan(command)
+        if acc["confidence"] >= 0.85:
+            self.memory.set(command, acc)
+            return acc
 
-        # 3. TEXT MATCHING
-        text_result = self._text_scan(command)
-        if text_result["confidence"] >= 0.65:
-            self.memory.set(command, text_result)
-            return text_result
+        # 3. TEXT SCAN
+        text = self._text_scan(command)
+        if text["confidence"] >= 0.65:
+            self.memory.set(command, text)
+            return text
 
-        # 4. VISION (SCREEN + OCR)
+        # 4. VISION FALLBACK
         vision_result = self.vision.analyze_screen(command)
         if vision_result.get("success"):
             target = vision_result["target"]
 
-            formatted = self._format_result(
+            result = self._format_result(
                 method="vision",
                 confidence=target.get("confidence", 0.8),
-                data=target
+                data=self._convert_bbox(target)
             )
 
-            self.memory.set(command, formatted)
-            return formatted
+            self.memory.set(command, result)
+            return result
 
-        # 5. LAST RESORT: COORDINATE GUESS
-        coord_result = self._coordinate_fallback(command)
-        self.memory.set(command, coord_result)
-        return coord_result
+        # 5. COORDINATE FALLBACK
+        coord = self._coordinate_fallback(command)
+        self.memory.set(command, coord)
+        return coord
 
     # =========================
-    # ACCESSIBILITY LAYER
+    # ACCESSIBILITY SCAN
     # =========================
     def _accessibility_scan(self, command):
 
-        # Simulated UI tree response (later Android fills this)
         ui_nodes = [
             {
                 "text": "Search",
@@ -108,8 +107,8 @@ class FinderV3:
             }
         ]
 
-        best = None
         cmd = command.lower()
+        best = None
 
         for node in ui_nodes:
             score = node["confidence"]
@@ -117,7 +116,7 @@ class FinderV3:
             if node["text"].lower() in cmd:
                 score += 0.05
 
-            if score > 0.9:
+            if score >= 0.90:
                 best = node
                 break
 
@@ -139,7 +138,7 @@ class FinderV3:
     # =========================
     def _text_scan(self, command):
 
-        text_db = {
+        db = {
             "search": {
                 "text": "Search",
                 "bounds": (400, 900, 600, 1000),
@@ -147,7 +146,7 @@ class FinderV3:
             }
         }
 
-        for key, value in text_db.items():
+        for key, value in db.items():
             if key in command.lower():
                 return self._format_result(
                     method="text",
@@ -162,7 +161,7 @@ class FinderV3:
         )
 
     # =========================
-    # VISION COORDINATE FALLBACK
+    # COORDINATE FALLBACK
     # =========================
     def _coordinate_fallback(self, command):
 
@@ -200,7 +199,7 @@ class FinderV3:
         }
 
     # =========================
-    # FORMAT OUTPUT
+    # FORMAT RESULT
     # =========================
     def _format_result(self, method, confidence, data):
 
