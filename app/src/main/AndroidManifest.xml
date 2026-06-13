@@ -12,19 +12,19 @@
             </intent-filter>
         </activity>
 
-        <!-- 🟢 JARVIS ACCESSIBILITY SERVICE -->
+        <!-- 🟢 ACCESSIBILITY SERVICE REGISZTRÁCIÓ -->
         <service
-            android:name=".JarvisAccessibilityService"
+            android:name=".SocketBridgeService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:exported="true">
 
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService"/>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
 
             <meta-data
                 android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_config"/>
+                android:resource="@xml/accessibility_config" />
         </service>
 
     </application>
